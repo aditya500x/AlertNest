@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from typing import List
@@ -31,6 +32,14 @@ import database
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(title="AlertNest API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # WebSocket Manager
 class ConnectionManager:
