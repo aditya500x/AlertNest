@@ -204,6 +204,7 @@ cython_debug/
 # AlertNest Specifics
 backend/alertnest.db
 backend/alertnest.db-journal
+node_modules/
 .env
 .env.local
 
