@@ -1,7 +1,8 @@
+from dotenv import load_dotenv; load_dotenv()
 import os
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
-from django.urls import path
+from django.urls import path, re_path
 from core.consumers import AlertConsumer
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'alertnest.settings')
@@ -11,7 +12,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'alertnest.settings')
 django_asgi_app = get_asgi_application()
 
 urlpatterns = [
-    path("ws", AlertConsumer.as_asgi()), # Match FastAPI's /ws
+    re_path(r"^ws/?$", AlertConsumer.as_asgi()), # Matches /ws and /ws/
 ]
 
 application = ProtocolTypeRouter({

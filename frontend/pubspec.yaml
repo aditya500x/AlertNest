@@ -12,6 +12,10 @@ dependencies:
   http: ^1.1.0
   web_socket_channel: ^2.4.0
   intl: ^0.18.1
+  speech_to_text: ^6.6.0
+  permission_handler: ^11.0.0
+  avatar_glow: ^3.0.1
+  record: ^6.0.0
 
 dev_dependencies:
   flutter_test:

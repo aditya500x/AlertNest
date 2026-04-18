@@ -4,6 +4,8 @@ from rest_framework import status
 from django.utils import timezone
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+import os
+from groq import Groq
 
 from .models import Incident, ChatMessage
 from .serializers import IncidentSerializer, ChatMessageSerializer
@@ -23,6 +25,65 @@ class IncidentCreateView(APIView):
         text = request.data.get("text", "")
         if not text:
             return Response({"detail": "Missing text"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        inc_type, inc_severity = classify_incident(text)
+        location = extract_location(text)
+        
+        incident = Incident.objects.create(
+            text=text,
+            type=inc_type,
+            severity=inc_severity,
+            location=location,
+            status="ACTIVE"
+        )
+        
+        # Broadcast
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "alerts",
+            {
+                "type": "broadcast_event",
+                "payload": {
+                    "event": "new_incident",
+                    "data": {
+                        "id": incident.id,
+                        "type": incident.type,
+                        "severity": incident.severity,
+                        "location": incident.location,
+                        "status": incident.status
+                    }
+                }
+            }
+        )
+        
+        serializer = IncidentSerializer(incident)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class IncidentAudioCreateView(APIView):
+    def post(self, request):
+        if 'audio' not in request.FILES:
+            return Response({"detail": "No audio file provided"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        audio_file = request.FILES['audio']
+        api_key = os.environ.get("GROQ_API_KEY")
+        if not api_key:
+            return Response({"detail": "GROQ_API_KEY not configured in backend"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+        client = Groq(api_key=api_key)
+        
+        try:
+            translation = client.audio.translations.create(
+                file=(audio_file.name, audio_file.read()),
+                model="whisper-large-v3",
+            )
+            text = translation.text
+        except Exception as e:
+            return Response({"detail": f"Translation failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+        if not text:
+            return Response({"detail": "No speech detected"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        print(f"Whisper Translated Text: {text}")
             
         inc_type, inc_severity = classify_incident(text)
         location = extract_location(text)
