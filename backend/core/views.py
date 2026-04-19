@@ -13,12 +13,55 @@ from .utils import classify_incident, extract_location
 
 class IncidentListView(APIView):
     def get(self, request):
-        incidents = Incident.objects.filter(status='ACTIVE')
-        # Sort HIGH > MEDIUM > LOW
-        sev_map = {"HIGH": 3, "MEDIUM": 2, "LOW": 1}
-        sorted_incidents = sorted(incidents, key=lambda x: sev_map.get(x.severity, 0), reverse=True)
+        incidents = list(Incident.objects.filter(status='ACTIVE'))
+        
+        if not incidents:
+            return Response([])
+            
+        # 1. Prepare data for the EPE
+        from .epe import EmergencyPriorityEngine
+        engine = EmergencyPriorityEngine()
+        
+        epe_payload = []
+        for inc in incidents:
+            time_diff = (timezone.now() - inc.created_at).total_seconds() / 60.0
+            epe_payload.append({
+                "id": inc.id,
+                "text": inc.text,
+                "people_affected": 0, # Could be extracted from text later
+                "people_at_risk": 0,
+                "time_reported_mins": max(0, time_diff)
+            })
+            
+        # 2. Run EPE Inference
+        ranked_output = engine.rank_emergencies(epe_payload)
+        ranked_items = ranked_output.get("prioritized_emergencies", [])
+        ranked_ids = [item["id"] for item in ranked_items]
+        
+        # 3. Sort backend models matching EPE rank
+        incident_map = {inc.id: inc for inc in incidents}
+        sorted_incidents = []
+        for r_id in ranked_ids:
+            if r_id in incident_map:
+                sorted_incidents.append(incident_map[r_id])
+                
+        # 4. Fallback for any unranked items
+        for inc in incidents:
+            if inc.id not in ranked_ids:
+                sorted_incidents.append(inc)
+
+        # 5. Serialize and inject EPE data
         serializer = IncidentSerializer(sorted_incidents, many=True)
-        return Response(serializer.data)
+        response_data = serializer.data
+        
+        for item in response_data:
+            for r_item in ranked_items:
+                if r_item["id"] == item["id"]:
+                    item["epe_score"] = r_item["priority_score"]
+                    item["epe_reason"] = r_item["reason"]
+                    break
+                    
+        return Response(response_data)
 
 class IncidentCreateView(APIView):
     def post(self, request):

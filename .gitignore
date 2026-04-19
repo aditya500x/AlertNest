@@ -210,6 +210,7 @@ node_modules/
 .env
 .env.local
 cloudflared
+*training_data.json
 
 # Flutter / Dart
 frontend/.dart_tool/
