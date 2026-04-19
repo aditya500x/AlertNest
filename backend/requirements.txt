@@ -1,7 +1,10 @@
-fastapi
-uvicorn
-websockets
-sqlalchemy
+django
+djangorestframework
+django-cors-headers
+channels[daphne]
 tensorflow>=2.16.1
 numpy
-python-multipart
+nvidia-cudnn-cu12
+nvidia-cublas-cu12
+nvidia-cuda-nvcc-cu12
+nvidia-cuda-runtime-cu12

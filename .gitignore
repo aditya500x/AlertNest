@@ -202,11 +202,15 @@ cython_debug/
 .cursorindexingignore
 
 # AlertNest Specifics
-backend/alertnest.db
-backend/alertnest.db-journal
+*.db
+*.db-journal
+*.sqlite3
+*.sqlite3-journal
 node_modules/
 .env
 .env.local
+cloudflared
+*training_data.json
 
 # Flutter / Dart
 frontend/.dart_tool/
