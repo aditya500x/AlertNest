@@ -14,7 +14,7 @@ Features an **AI-driven Django backend** and a **Real-time Flutter Dashboard** w
 - **Frontend (`/frontend`)**: Flutter Cross-Platform App.
   - **Dashboard**: Live feed of active incidents categorized by severity.
   - **Triage**: Detail view with live team chat and incident resolution.
-  - **Voice Triage**: Long-press speech-to-text NLP processing for rapid reporting.
+
 
 ---
 
@@ -37,11 +37,12 @@ pip install -r requirements.txt
 ```
 
 #### Environment Variables
-Create a `.env` file in the `backend/` directory by copying the example from the root:
+Create a `.env` file in the `backend/` directory by copying the example:
 ```bash
-cp ../.env.example .env
+cp .env.example .env
 ```
-Ensure you fill out any required API keys (e.g., Speech-to-Text APIs) inside `backend/.env`.
+Ensure you fill out any required settings inside `backend/.env`.
+
 
 #### Database Setup
 Run the initial Django migrations to set up the SQLite database:
@@ -49,19 +50,38 @@ Run the initial Django migrations to set up the SQLite database:
 python manage.py migrate
 ```
 
-#### Pre-Train the AI Model (Important!)
-Before testing incident classification, you must train the neural network to recognize the NLP map. 
+#### 🧠 AI Models & Priority Engine
+AlertNest utilizes a dual-model AI architecture:
+1.  **NLP Classifier (`nlp_model.keras`)**: Categorizes text intents (FIRE, MEDICAL, SECURITY).
+2.  **Emergency Priority Engine (`epe_model.keras`)**: A dual-input regression model that ranks incidents by severity, risk, and urgency.
 
-If you have an **NVIDIA GPU** configured with CUDA (as per `requirements.txt` environment):
+**The repository includes pre-trained weights for both models.** You do **not** need to re-train them unless you modify the training datasets.
+
+#### 🚀 Direct Usage (No Training Required)
+Since pre-trained weights are included, you can start the system immediately:
+1.  **Start the Backend**: `python manage.py runserver` (The models load into memory automatically).
+2.  **Test Inference**: Run `python demo_epe.py` to see the AI prioritize emergencies without any setup.
+
+**Note:** You only need to run the scripts in the "Optional Training" section below if you want to rebuild the AI logic from scratch.
+
+#### (Optional) Training the Models
+If you wish to update or re-train the models with new data:
+
+**1. Base NLP Classifier:**
 ```bash
+# GPU (Recommended)
 python train_model.py
-```
-
-If you are running on a **CPU only** or a non-NVIDIA machine (like a Mac or a lightweight laptop):
-```bash
+# CPU Fallback
 python train_model_cpu.py
 ```
-*Note: The datasets map emergencies to classifications. A Safety Keyword Layer ensures obvious words like "fire" always trigger correctly even if the AI is still learning.*
+
+**2. Emergency Priority Engine (EPE):**
+```bash
+# Generate synthetic priority data first
+python generate_epe_data.py
+# Train the EPE regression model
+python train_epe.py
+```
 
 #### Run the Server
 Start the Django ASGI development server (so WebSockets and HTTP requests work simultaneously):
@@ -70,6 +90,7 @@ python manage.py runserver 0.0.0.0:8000
 ```
 - **API Base**: `http://127.0.0.1:8000/`
 - **Websocket**: `ws://127.0.0.1:8000/ws/`
+- **Tandem Model Demo**: Run `python demo_epe.py` to see the **NLP Classifer** and **Priority Engine** work in tandem—the output will show both the incident type and its priority score in a single ranked JSON payload.
 
 ---
 
@@ -101,10 +122,9 @@ flutter run
 
 ## 🛠️ Key Hackathon Features
 
-1.  **Smart AI Classification**: Voice or text input like *"Smoke in the lobby"* ➔ Categorized as **[FIRE] - HIGH SEVERITY** instantly via TensorFlow.
+1.  **Smart AI Classification**: Text input like *"Smoke in the lobby"* ➔ Categorized as **[FIRE] - HIGH SEVERITY** instantly via TensorFlow.
 2.  **Live Desk**: The dashboard updates instantly via WebSockets without refreshing.
-3.  **Voice-to-Text Triage**: Dedicated push-to-talk button for rapid, hands-free field reporting.
-4.  **One-Click Resolve**: Responding to an incident clears it from all connected responder screens in real-time.
+3.  **One-Click Resolve**: Responding to an incident clears it from all connected responder screens in real-time.
 
 ---
 
@@ -112,4 +132,5 @@ flutter run
 - `backend/`: Django project (`alertnest`), Channels WebSocket routing (`core`), models, and TensorFlow model scripts.
 - `frontend/`: Flutter source code, UI components, and platform runners.
 - `backend/tokenizer.json`: Word index mapping for the AI engine.
-- `backend/nlp_model.keras`: Saved neural network weights (generated after training).
+- `backend/nlp_model.keras`: Base classifier weights.
+- `backend/epe_model.keras`: Emergency Priority Engine weights (fully trained).
