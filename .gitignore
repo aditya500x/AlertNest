@@ -226,3 +226,4 @@ frontend/macos/Flutter/ephemeral/
 .vscode/
 .idea/
 *.iml
+reference/
