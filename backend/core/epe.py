@@ -135,7 +135,9 @@ class EmergencyPriorityEngine:
             
             prioritized.append({
                 "id": row["id"],
-                "priority_score": round(score, 3), # normalize precision
+                "type": row["type"], # From NLP Model
+                "severity": row["severity_label"], # From NLP Model
+                "priority_score": round(score, 3), # From EPE Model
                 "reason": reason
             })
             
