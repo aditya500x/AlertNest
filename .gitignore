@@ -221,6 +221,8 @@ frontend/build/
 frontend/linux/flutter/ephemeral/
 frontend/windows/flutter/ephemeral/
 frontend/macos/Flutter/ephemeral/
+!frontend/lib/
+!frontend/lib/*
 
 # IDEs
 .vscode/
